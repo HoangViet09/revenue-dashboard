@@ -25,12 +25,24 @@ interface RevenueChartProps {
 }
 
 // Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayload {
+  color: string;
+  name: string;
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
         <p className="font-semibold text-gray-900 mb-2">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: TooltipPayload, index: number) => (
           <div key={index} className="flex items-center gap-2 mb-1">
             <div
               className="w-3 h-3 rounded-full"
@@ -55,7 +67,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
 }) => {
   // Filter data based on current filters
   const filteredData = data.map((item) => {
-    const filtered: any = { day: item.day };
+    const filtered: Record<string, unknown> = { day: item.day };
 
     if (filters.showPosRevenue) {
       filtered.posRevenue = item.posRevenue;
@@ -187,9 +199,10 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
         {/* Event Impact Indicators */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
           {filteredData.map((item, index) => {
-            if (!item.events || item.events.length === 0) return null;
+            const events = item.events as EventImpact[] | undefined;
+            if (!events || events.length === 0) return null;
 
-            return item.events.map((event: EventImpact, eventIndex: number) => (
+            return events.map((event: EventImpact, eventIndex: number) => (
               <div
                 key={`${index}-${eventIndex}`}
                 className="absolute"
