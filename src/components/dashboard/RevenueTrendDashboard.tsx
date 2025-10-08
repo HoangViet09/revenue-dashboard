@@ -4,13 +4,14 @@
  * Main dashboard component that orchestrates all sub-components
  */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { HeaderSection } from "./HeaderSection";
 import { KPICards } from "./KPICards";
 import { RevenueChart } from "./RevenueChart";
 import { ChartLegend } from "./ChartLegend";
-import { ChartFilters, ChartDataPoint, WeekData } from "@/lib/types";
-import { fetchDashboardData, getComparisonData } from "@/data/mockData";
+import { ChartFilters, ChartDataPoint } from "@/lib/types";
+import { useDashboardRevenue, useRevenueComparison } from "@/hooks/api";
+import { getComparisonData } from "@/data/mockData";
 
 interface RevenueTrendDashboardProps {
   title?: string;
@@ -19,13 +20,9 @@ interface RevenueTrendDashboardProps {
 export const RevenueTrendDashboard: React.FC<RevenueTrendDashboardProps> = ({
   title = "This Week's Revenue Trend",
 }) => {
-  // State management
-  const [currentWeekData, setCurrentWeekData] = useState<WeekData | null>(null);
-  const [previousWeekData, setPreviousWeekData] = useState<WeekData | null>(
-    null
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use React Query hooks for data fetching
+  const dashboardQuery = useDashboardRevenue();
+  const comparisonQuery = useRevenueComparison();
 
   // Chart configuration state
   const [showComparison, setShowComparison] = useState(true);
@@ -35,26 +32,11 @@ export const RevenueTrendDashboard: React.FC<RevenueTrendDashboardProps> = ({
     showLabourCosts: true,
   });
 
-  // Load data on component mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const data = await fetchDashboardData();
-        setCurrentWeekData(data.currentWeek);
-        setPreviousWeekData(data.previousWeek);
-      } catch (err) {
-        setError("Failed to load dashboard data");
-        console.error("Error loading dashboard data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  // Extract data from queries
+  const currentWeekData = dashboardQuery.data?.currentWeek;
+  const previousWeekData = dashboardQuery.data?.previousWeek;
+  const loading = dashboardQuery.isLoading || comparisonQuery.isLoading;
+  const error = dashboardQuery.error || comparisonQuery.error;
 
   // Transform data for chart
   const chartData: ChartDataPoint[] = useMemo(() => {
@@ -127,9 +109,15 @@ export const RevenueTrendDashboard: React.FC<RevenueTrendDashboardProps> = ({
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
             Error Loading Dashboard
           </h2>
-          <p className="text-gray-600 mb-4">{error || "No data available"}</p>
+          <p className="text-gray-600 mb-4">
+            {error?.message || "No data available"}
+          </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              dashboardQuery.refetch();
+              comparisonQuery.currentWeek.refetch();
+              comparisonQuery.previousWeek.refetch();
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Retry
