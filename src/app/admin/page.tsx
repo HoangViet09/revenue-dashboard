@@ -23,6 +23,7 @@ import {
 } from "@/hooks/api/useAdmin";
 import { useEventsList } from "@/hooks/api/useEvents";
 import { useUsers } from "@/hooks/api/useAuth";
+import { useDashboardRevenue } from "@/hooks/api/useRevenue";
 import { RevenueModal } from "@/components/modals/RevenueModal";
 import { EventModal } from "@/components/modals/EventModal";
 import { UserModal } from "@/components/modals/UserModal";
@@ -60,6 +61,8 @@ export default function AdminPage() {
   // API hooks
   const { data: dashboardData, isLoading: dashboardLoading } =
     useAdminDashboard();
+  const { data: revenueDashboardData, isLoading: revenueDashboardLoading } =
+    useDashboardRevenue();
   const { data: revenueData, isLoading: revenueLoading } = useAdminRevenueData({
     page: currentPage,
     limit,
@@ -531,6 +534,125 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* This Week's Revenue Trend vs Previous Period */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl font-bold text-gray-900">
+                    This Week's Revenue Trend vs Previous Period
+                  </CardTitle>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {revenueDashboardLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="bg-white p-6 rounded-lg border animate-pulse"
+                    >
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : revenueDashboardData ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Total Revenue Card */}
+                  <div className="bg-white p-6 rounded-lg border">
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">
+                      Total Revenue
+                    </h3>
+                    <p className="text-3xl font-bold text-gray-900 mb-2">
+                      $
+                      {revenueDashboardData.currentWeek.summary.totalRevenue.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      vs $
+                      {revenueDashboardData.previousWeek.summary.totalRevenue.toLocaleString()}
+                      <span className="text-green-600 font-medium ml-1">
+                        (+
+                        {(
+                          ((revenueDashboardData.currentWeek.summary
+                            .totalRevenue -
+                            revenueDashboardData.previousWeek.summary
+                              .totalRevenue) /
+                            revenueDashboardData.previousWeek.summary
+                              .totalRevenue) *
+                          100
+                        ).toFixed(1)}
+                        %)
+                      </span>
+                    </p>
+                  </div>
+
+                  {/* Average per Day Card */}
+                  <div className="bg-white p-6 rounded-lg border">
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">
+                      Average per Day
+                    </h3>
+                    <p className="text-3xl font-bold text-gray-900 mb-2">
+                      $
+                      {revenueDashboardData.currentWeek.summary.averagePerDay.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      vs $
+                      {revenueDashboardData.previousWeek.summary.averagePerDay.toLocaleString()}
+                      <span className="text-green-600 font-medium ml-1">
+                        (+
+                        {(
+                          ((revenueDashboardData.currentWeek.summary
+                            .averagePerDay -
+                            revenueDashboardData.previousWeek.summary
+                              .averagePerDay) /
+                            revenueDashboardData.previousWeek.summary
+                              .averagePerDay) *
+                          100
+                        ).toFixed(1)}
+                        %)
+                      </span>
+                    </p>
+                  </div>
+
+                  {/* Total Covers Card */}
+                  <div className="bg-white p-6 rounded-lg border">
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">
+                      Total Covers
+                    </h3>
+                    <p className="text-3xl font-bold text-gray-900 mb-2">
+                      {revenueDashboardData.currentWeek.summary.totalCovers}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      vs {revenueDashboardData.previousWeek.summary.totalCovers}
+                      <span className="text-green-600 font-medium ml-1">
+                        (+
+                        {(
+                          ((revenueDashboardData.currentWeek.summary
+                            .totalCovers -
+                            revenueDashboardData.previousWeek.summary
+                              .totalCovers) /
+                            revenueDashboardData.previousWeek.summary
+                              .totalCovers) *
+                          100
+                        ).toFixed(1)}
+                        %)
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No dashboard data available</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Admin Dashboard Overview */}
         <div className="mb-8">
           <Card>

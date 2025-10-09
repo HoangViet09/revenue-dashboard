@@ -10,8 +10,7 @@ import { KPICards } from "./KPICards";
 import { RevenueChart } from "./RevenueChart";
 import { ChartLegend } from "./ChartLegend";
 import { ChartFilters, ChartDataPoint } from "@/lib/types";
-import { useDashboardRevenue, useRevenueComparison } from "@/hooks/api";
-import { getComparisonData } from "@/data/mockData";
+import { useDashboardRevenue } from "@/hooks/api";
 
 interface RevenueTrendDashboardProps {
   title?: string;
@@ -22,7 +21,6 @@ export const RevenueTrendDashboard: React.FC<RevenueTrendDashboardProps> = ({
 }) => {
   // Use React Query hooks for data fetching
   const dashboardQuery = useDashboardRevenue();
-  const comparisonQuery = useRevenueComparison();
 
   // Chart configuration state
   const [showComparison, setShowComparison] = useState(true);
@@ -35,8 +33,8 @@ export const RevenueTrendDashboard: React.FC<RevenueTrendDashboardProps> = ({
   // Extract data from queries
   const currentWeekData = dashboardQuery.data?.currentWeek;
   const previousWeekData = dashboardQuery.data?.previousWeek;
-  const loading = dashboardQuery.isLoading || comparisonQuery.isLoading;
-  const error = dashboardQuery.error || comparisonQuery.error;
+  const loading = dashboardQuery.isLoading;
+  const error = dashboardQuery.error;
 
   // Transform data for chart
   const chartData: ChartDataPoint[] = useMemo(() => {
@@ -62,14 +60,28 @@ export const RevenueTrendDashboard: React.FC<RevenueTrendDashboardProps> = ({
   const comparisonData = useMemo(() => {
     if (!currentWeekData || !previousWeekData) return null;
 
-    const comparison = getComparisonData();
+    const current = currentWeekData.summary;
+    const previous = previousWeekData.summary;
+
+    // Calculate change percentages
+    const revenueChangePercent =
+      ((current.totalRevenue - previous.totalRevenue) / previous.totalRevenue) *
+      100;
+    const averageChangePercent =
+      ((current.averagePerDay - previous.averagePerDay) /
+        previous.averagePerDay) *
+      100;
+    const coversChangePercent =
+      ((current.totalCovers - previous.totalCovers) / previous.totalCovers) *
+      100;
+
     return {
-      totalRevenue: comparison.totalRevenue.previous,
-      averagePerDay: comparison.averagePerDay.previous,
-      totalCovers: comparison.totalCovers.previous,
-      revenueChangePercent: comparison.totalRevenue.changePercent,
-      averageChangePercent: comparison.averagePerDay.changePercent,
-      coversChangePercent: comparison.totalCovers.changePercent,
+      totalRevenue: previous.totalRevenue,
+      averagePerDay: previous.averagePerDay,
+      totalCovers: previous.totalCovers,
+      revenueChangePercent,
+      averageChangePercent,
+      coversChangePercent,
     };
   }, [currentWeekData, previousWeekData]);
 
@@ -115,8 +127,6 @@ export const RevenueTrendDashboard: React.FC<RevenueTrendDashboardProps> = ({
           <button
             onClick={() => {
               dashboardQuery.refetch();
-              comparisonQuery.currentWeek.refetch();
-              comparisonQuery.previousWeek.refetch();
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
