@@ -1,268 +1,225 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+// Zod schema for validation
+const userFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().optional(),
+  role: z.enum(["admin", "user"], {
+    message: "Role is required",
+  }),
+});
+
+type UserFormValues = z.infer<typeof userFormSchema>;
 
 interface UserData {
-    email: string;
-    password: string;
-    name: string;
-    role: "admin" | "user";
+  email: string;
+  password: string;
+  name: string;
+  role: "admin" | "user";
 }
 
 interface UserModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmit: (data: UserData) => void;
-    title: string;
-    initialData?: Partial<UserData>;
-    isLoading?: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: UserData) => void;
+  title: string;
+  initialData?: Partial<UserData>;
+  isLoading?: boolean;
 }
 
 export const UserModal: React.FC<UserModalProps> = ({
-    isOpen,
-    onClose,
-    onSubmit,
-    title,
-    initialData,
-    isLoading = false,
+  isOpen,
+  onClose,
+  onSubmit,
+  title,
+  initialData,
+  isLoading = false,
 }) => {
-    const [formData, setFormData] = useState<UserData>({
+  const isEditing = !!initialData;
+
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "user",
+    },
+  });
+
+  // Update form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        name: initialData.name || "",
+        email: initialData.email || "",
+        password: "", // Don't pre-fill password for security
+        role: initialData.role || "user",
+      });
+    } else {
+      form.reset({
+        name: "",
         email: "",
         password: "",
-        name: "",
         role: "user",
-    });
+      });
+    }
+  }, [initialData, isOpen, form]);
 
-    const [errors, setErrors] = useState<Partial<UserData>>({});
-
-    useEffect(() => {
-        if (initialData) {
-            setFormData({
-                email: initialData.email || "",
-                password: initialData.password || "",
-                name: initialData.name || "",
-                role: initialData.role || "user",
-            });
-        } else {
-            setFormData({
-                email: "",
-                password: "",
-                name: "",
-                role: "user",
-            });
-        }
-        setErrors({});
-    }, [initialData, isOpen]);
-
-    const validateForm = (): boolean => {
-        const newErrors: Partial<UserData> = {};
-
-        if (!formData.email.trim()) {
-            newErrors.email = "Email is required";
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = "Email is invalid";
-        }
-
-        if (!formData.name.trim()) {
-            newErrors.name = "Name is required";
-        }
-
-        // Only require password for new users
-        if (!initialData && !formData.password.trim()) {
-            newErrors.password = "Password is required";
-        } else if (formData.password && formData.password.length < 6) {
-            newErrors.password = "Password must be at least 6 characters";
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+  const handleSubmit = (values: UserFormValues) => {
+    // For editing, only include password if it's provided
+    const submitData: UserData = {
+      name: values.name,
+      email: values.email,
+      role: values.role,
+      password: values.password || "",
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (validateForm()) {
-            // Don't send password if it's empty (for updates)
-            const submitData = { ...formData };
-            if (!submitData.password) {
-                delete submitData.password;
-            }
-            onSubmit(submitData as UserData);
-        }
-    };
+    // If editing and no password provided, remove it from the data
+    if (isEditing && !values.password) {
+      delete (submitData as Partial<UserData>).password;
+    }
 
-    const handleInputChange = (field: keyof UserData, value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
+    onSubmit(submitData);
+  };
 
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors((prev) => ({
-                ...prev,
-                [field]: undefined,
-            }));
-        }
-    };
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {isEditing
+              ? "Update user information"
+              : "Create a new user account"}
+          </DialogDescription>
+        </DialogHeader>
 
-    if (!isOpen) return null;
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      {...field}
+                      placeholder="Enter full name"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle>{title}</CardTitle>
-                    <CardDescription>
-                        {initialData
-                            ? "Update user information"
-                            : "Add new user"}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label
-                                htmlFor="name"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                            >
-                                Full Name *
-                            </label>
-                            <input
-                                id="name"
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) =>
-                                    handleInputChange("name", e.target.value)
-                                }
-                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary ${
-                                    errors.name
-                                        ? "border-red-300"
-                                        : "border-gray-300"
-                                }`}
-                                required
-                            />
-                            {errors.name && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.name}
-                                </p>
-                            )}
-                        </div>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      {...field}
+                      placeholder="Enter email address"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                        <div>
-                            <label
-                                htmlFor="email"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                            >
-                                Email *
-                            </label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) =>
-                                    handleInputChange("email", e.target.value)
-                                }
-                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary ${
-                                    errors.email
-                                        ? "border-red-300"
-                                        : "border-gray-300"
-                                }`}
-                                required
-                            />
-                            {errors.email && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.email}
-                                </p>
-                            )}
-                        </div>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Password {isEditing && "(leave blank to keep current)"}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      {...field}
+                      placeholder={
+                        isEditing
+                          ? "Enter new password (optional)"
+                          : "Enter password"
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                        <div>
-                            <label
-                                htmlFor="password"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                            >
-                                Password {!initialData && "*"}
-                            </label>
-                            <input
-                                id="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "password",
-                                        e.target.value
-                                    )
-                                }
-                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary ${
-                                    errors.password
-                                        ? "border-red-300"
-                                        : "border-gray-300"
-                                }`}
-                                placeholder={
-                                    initialData
-                                        ? "Leave blank to keep current password"
-                                        : "Enter password"
-                                }
-                                required={!initialData}
-                            />
-                            {errors.password && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.password}
-                                </p>
-                            )}
-                        </div>
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                        <div>
-                            <label
-                                htmlFor="role"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                            >
-                                Role *
-                            </label>
-                            <select
-                                id="role"
-                                value={formData.role}
-                                onChange={(e) =>
-                                    handleInputChange(
-                                        "role",
-                                        e.target.value as "admin" | "user"
-                                    )
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                            >
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-
-                        <div className="flex justify-end space-x-2 pt-4">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={onClose}
-                                disabled={isLoading}
-                            >
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading
-                                    ? "Saving..."
-                                    : initialData
-                                    ? "Update"
-                                    : "Add"}
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
-    );
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
 };

@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { WavyArrow } from "@/components/ui/wavy-arrow";
 import { ChartFilters } from "@/lib/types";
 
 interface ChartLegendProps {
@@ -77,12 +77,12 @@ export const ChartLegend: React.FC<ChartLegendProps> = ({
       {
         label: "Positive Event Impact",
         color: "#10b981",
-        icon: <TrendingUp className="w-4 h-4" />,
+        icon: <WavyArrow direction="up" className="w-4 h-4" />,
       },
       {
         label: "Negative Event Impact",
         color: "#ef4444",
-        icon: <TrendingDown className="w-4 h-4" />,
+        icon: <WavyArrow direction="down" className="w-4 h-4" />,
       }
     );
 
@@ -113,4 +113,3 @@ export const ChartLegend: React.FC<ChartLegendProps> = ({
     </div>
   );
 };
-

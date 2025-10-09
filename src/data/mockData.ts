@@ -46,7 +46,6 @@ export const currentWeekData: WeekData = {
       eatclubRevenue: 300,
       labourCosts: 800,
       covers: 115,
-      events: [mockEvents[0]], // Negative event
     },
     {
       date: createDateString(-3), // Thursday

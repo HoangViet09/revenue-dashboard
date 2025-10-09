@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { WavyArrow } from "@/components/ui/wavy-arrow";
 import { ChartDataPoint, ChartFilters, EventImpact } from "@/lib/types";
 
 interface RevenueChartProps {
@@ -202,22 +202,45 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
             const events = item.events as EventImpact[] | undefined;
             if (!events || events.length === 0) return null;
 
-            return events.map((event: EventImpact, eventIndex: number) => (
-              <div
-                key={`${index}-${eventIndex}`}
-                className="absolute"
-                style={{
-                  left: `${(index * 100) / 7 + 7.14}%`, // Approximate positioning
-                  top: "20px",
-                }}
-              >
-                {event.type === "positive" ? (
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                ) : (
-                  <TrendingDown className="w-4 h-4 text-red-500" />
-                )}
-              </div>
-            ));
+            return events.map((event: EventImpact, eventIndex: number) => {
+              // Calculate position based on chart layout
+              const chartWidth = 100; // Percentage
+              const barWidth = chartWidth / 7; // 7 days
+              const leftPosition = index * barWidth + barWidth / 2 - 1; // Center on bar
+
+              return (
+                <div
+                  key={`${index}-${eventIndex}`}
+                  className="absolute flex items-center justify-center"
+                  style={{
+                    left: `${leftPosition}%`,
+                    top: "10px",
+                    transform: "translateX(-50%)",
+                  }}
+                >
+                  <div className="relative">
+                    <WavyArrow
+                      direction={event.type === "positive" ? "up" : "down"}
+                      className="w-6 h-6 drop-shadow-sm"
+                    />
+                    {/* Add a subtle background circle for better visibility */}
+                    <div
+                      className={`absolute inset-0 rounded-full -z-10 ${
+                        event.type === "positive"
+                          ? "bg-green-100"
+                          : "bg-red-100"
+                      }`}
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        left: "-2px",
+                        top: "-2px",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            });
           })}
         </div>
       </CardContent>
